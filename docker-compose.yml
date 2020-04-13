@@ -1,0 +1,36 @@
+version: "3.7"
+
+networks:
+  default:
+    driver: bridge
+
+services:
+  guacd:
+    image: "guacamole/guacd:1.1.0"
+    container_name: guacd
+    restart: always
+
+  guacamole:
+    image: "guacamole/guacamole:1.1.0"
+    container_name: guacamole
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysql
+      - guacd
+    env_file:
+      - ./secrets.env
+    environment:
+      GUACD_HOSTNAME: guacd
+      GUACD_PORT: 4822
+      MYSQL_HOSTNAME: mysql
+      MYSQL_PORT: 3306
+
+  mysql:
+    image: mysql
+    container_name: mysql:8.0.19
+    volumes:
+      - "./mysql-init/:/docker-entrypoint-initdb.d/" 
+    env_file:
+      - ./secrets.env
