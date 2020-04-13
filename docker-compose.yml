@@ -7,15 +7,13 @@ networks:
 services:
   guacd:
     image: "guacamole/guacd:1.1.0"
-    container_name: guacd
     restart: always
 
   guacamole:
     image: "guacamole/guacamole:1.1.0"
-    container_name: guacamole
     restart: always
-    ports:
-      - "8080:8080"
+    # ports:
+    #   - "8080:8080"
     depends_on:
       - mysql
       - guacd
@@ -28,9 +26,24 @@ services:
       MYSQL_PORT: 3306
 
   mysql:
-    image: mysql
-    container_name: mysql:8.0.19
+    image: mysql:8.0.19
     volumes:
       - "./mysql-init/:/docker-entrypoint-initdb.d/" 
     env_file:
       - ./secrets.env
+
+  tunnel:
+    # Ad-hoc build pending official image
+    build: https://github.com/cloudflare/cloudflared.git
+    environment:
+      TUNNEL_URL: http://guacamole:8080
+      TUNNEL_ORIGIN_CERT: /.cloudflared/cert.pem
+      TUNNEL_RETRIES: 10
+    env_file:
+      - ./secrets.env
+    volumes:
+      - "~/.cloudflared/cert.pem:/.cloudflared/cert.pem"
+    restart: always
+    command: ["tunnel"]
+    depends_on: 
+      - guacamole
